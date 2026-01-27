@@ -1,136 +1,55 @@
-xftool (v0.4)一个专为星际计算设计的高精度数学工具箱。License本项目采用 MIT License。你可以自由使用、修改和分发，但请保留作者 tinagongtt-lang 的署名。使用说明 (Usage)完整核心代码参考以下是 xftool 核心模块的完整逻辑实现，基于 gmpy2 保证了天文级计算的数值精度。import gmpy2
-import random
-from gmpy2 import mpfr, mpz, mpc
+🚀 xftool (v0.4)
+一个专为星际计算设计的高精度数学工具箱。本项目通过 gmpy2 提供了超越标准浮点数（Float64）的数值精度，适用于天文轨道计算、高精度物理模拟等场景。
 
-# ==========================================
-# 1. 核心精度设置 (128位精度，约 38 位有效数字)
-# ==========================================
-gmpy2.get_context().precision = 128
+📜 授权 (License)
+本项目采用 MIT License。你可以自由使用、修改和分发，但请保留作者 tinagongtt-lang 的署名。
 
-# ==========================================
-# 2. 圆周率 Pi (Chudnovsky 算法 - 二分递归版)
-# ==========================================
-def pi(digits=100):
-    """计算高精度 Pi"""
-    prec = int(digits * 3.322) + 64
-    gmpy2.get_context().precision = prec
-    
-    C1, C2, C3 = 13591409, 545140134, 640320
-    C3_3 = C3**3 // 24
+🛠️ 安装方法 (Installation)
+```bash
+# 克隆仓库
+git clone https://github.com/tinagongtt-lang/xftool.git
+cd xftool
 
-    def bsplit(a, b):
-        if b - a == 1:
-            if a == 0:
-                P = Q = mpz(1)
-            else:
-                P = mpz((6*a-5)*(2*a-1)*(6*a-1))
-                Q = mpz(a**3 * C3_3)
-            T = mpz(P * (C1 + a*C2))
-            if a % 2 == 1: T = -T
-            return P, Q, T
-        else:
-            mid = (a + b) // 2
-            P1, Q1, T1 = bsplit(a, mid)
-            P2, Q2, T2 = bsplit(mid, b)
-            return P1*P2, Q1*Q2, Q2*T1 + P1*T2
+# 以开发模式安装 (支持系统包断点)
+pip install -e . --break-system-packages
+```
+📖 快速上手 (Quick Usage)
+安装完成后，你可以在任何 Python 环境中直接调用 xmath 模块。
 
-    n = int(digits / 14.18) + 1
-    P, Q, T = bsplit(0, n)
-    sqrt_C3 = gmpy2.sqrt(mpfr(10005))
-    return (mpfr(426880) * sqrt_C3 * Q) / T
+1. 高精度圆周率与天文常数
 
-class Constants:
-    # --- 基础常数 ---
-    # 使用 pi(100) 来确保 Degree 的超高精度
-    PI = pi(100)
-    
-    # Degree: 1度对应的弧度值 (pi / 180)
-    DEGREE = PI / 180
-    
-    # --- 物理与天文常数 ---
-    C = mpfr('299792458')
-    G = mpfr('6.67430e-11')
-    AU = mpfr('149597870700')
-    EARTH_MASS = mpfr('5.9722e24')
-    EARTH_RADIUS = mpfr('6371000')
+```python
+from xmath.functions import pi.Constants
 
-# 快捷转换工具函数
-def to_radians(deg):
-    return deg * Constants.DEGREE
+# 计算 100 位精度的 Pi
+print(f"Pi (100 digits): {pi(100)}")
 
-def to_degrees(rad):
-    return rad / Constants.DEGREE
+# 获取天文常数 (基于 128 位精度)
+print(f"万有引力常数 G: {Constants.G}")
+print(f"天文单位 AU: {Constants.AU}")
+```
+2. 角度转换与反三角函数
 
-# ==========================================
-# 3. 反三角函数与级数展开
-# ==========================================
-def arctan(x, j=50):
-    """ArcTan[x] 展开 (适用于 |x| < 1)"""
-    x = mpfr(x)
-    result = mpfr(0)
-    for i in range(j):
-        term = ((-1)**i) * (x**(2*i+1)) / (2*i+1)
-        result += term
-    return result
+```python
+from xmath.functions import to_radians, arctan
 
-def arcsin(x, j=50):
-    """ArcSin[x] 展开"""
-    x = mpfr(x)
-    res = x
-    num, den = mpz(1), mpz(2)
-    for i in range(1, j):
-        p = 2 * i + 1
-        res += (mpfr(num)/den) * (x**p) / p
-        num *= (2*i + 1)
-        den *= (2*i + 2)
-    return res
+# 角度转弧度
+rad = to_radians(45.0)
+print(f"45 degrees in radians: {rad}")
 
-def arccos(x, j=50):
-    """ArcCos[x] = Pi/2 - ArcSin[x]"""
-    return (pi(50) / 2) - arcsin(x, j)
+# 使用级数展开计算 ArcTan
+print(f"ArcTan(0.5): {arctan(0.5)}")
+```
+3. 数论工具
 
-# ==========================================
-# 4. 基础工具与数论函数
-# ==========================================
-def factorial(n):
-    """n! 阶乘"""
-    return gmpy2.fac(int(n))
+```python
+from xmath.functions import factor_integer, factorial
 
-def abs_val(x):
-    """Abs[x] 绝对值"""
-    return abs(mpfr(x))
+# 素因子分解
+print(f"Factor 2026: {factor_integer(2026)}")
 
-def round_val(x):
-    """Round[x] 最近整数"""
-    return int(gmpy2.rint(mpfr(x)))
-
-def mod_val(n, m):
-    """Mod[n, m] 模除"""
-    return mpz(n) % mpz(m)
-
-def factor_integer(n):
-    """FactorInteger[n] 素数因子分解"""
-    factors = []
-    d, temp = 2, mpz(n)
-    while d * d <= temp:
-        while (temp % d) == 0:
-            factors.append(int(d))
-            temp //= d
-        d += 1
-    if temp > 1: factors.append(int(temp))
-    return factors
-
-# ==========================================
-# 5. 辅助工具 (Random, Max, Min)
-# ==========================================
-def random_real():
-    """RandomReal[] 0-1 随机数"""
-    return random.random()
-
-def max_val(*args):
-    """Max[x, y, ...]"""
-    return max(args)
-
-def min_val(*args):
-    """Min[x, y, ...]"""
-    return min(args)
+# 计算大数阶乘
+print(f"Factorial 100: {factorial(100)}")
+```
+🧠 核心逻辑实现 (Implementation Reference)
+本工具箱的核心算法（如 Chudnovsky 算法、级数展开等）已在源代码中完整实现。详细代码逻辑请参考 xmath/functions.py。
