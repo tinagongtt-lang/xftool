@@ -12,6 +12,7 @@ class XPoint(ctypes.Structure):
 class Display:
     """
     统一绘图引擎：支持 'triangle', 'square', 'rectangle', 'circle'
+    新增 'done()' 方法用于维持窗口状态
     """
     def __init__(self, system, **kwargs):
         self.system = system
@@ -26,8 +27,29 @@ class Display:
             self._draw_linux(shape, size)
         elif self.system == "Windows":
             self._draw_windows(shape, size)
-        elif self.system == "Darwin":
-            self._draw_macos(shape, size)
+
+    def done(self):
+        """
+        🚀 核心更新：进入事件循环，防止窗口闪退
+        """
+        print(f"⏳ [{self.system}] 绘图完成。窗口已锁定，请手动关闭窗口以退出程序。")
+        
+        if self.system == "Linux":
+            xlib = self.props['xlib']
+            dpy = self.props['dpy']
+            # 创建一个足够大的缓冲区来接收 XEvent 结构体
+            event = (ctypes.c_char * 96)() 
+            while True:
+                xlib.XNextEvent(dpy, event)
+                # 此时窗口会保持响应，不再闪退
+                
+        elif self.system == "Windows":
+            user32 = ctypes.windll.user32
+            msg = ctypes.wintypes.MSG()
+            # 标准 Win32 消息循环
+            while user32.GetMessageW(ctypes.byref(msg), 0, 0, 0) != 0:
+                user32.TranslateMessage(ctypes.byref(msg))
+                user32.DispatchMessageW(ctypes.byref(msg))
 
     def _draw_linux(self, shape, size):
         xlib = self.props['xlib']
@@ -39,14 +61,7 @@ class Display:
         
         if shape == "circle":
             s = size if isinstance(size, int) else size[0]
-            # XFillArc: 绘制填充圆弧，angle2 为 360*64 代表全圆
             xlib.XFillArc(dpy, win, gc, self.start_x, self.start_y, s, s, 0, 360 * 64)
-        elif shape == "triangle":
-            s = size if isinstance(size, int) else size[0]
-            pts = (XPoint * 3)(XPoint(self.start_x, self.start_y+s), 
-                               XPoint(self.start_x+s, self.start_y+s), 
-                               XPoint(self.start_x+s//2, self.start_y))
-            xlib.XFillPolygon(dpy, win, gc, pts, 3, 1, 0)
         elif shape in ["square", "rectangle"]:
             w, h = (size, size) if isinstance(size, int) else size
             xlib.XFillRectangle(dpy, win, gc, self.start_x, self.start_y, w, h)
@@ -72,40 +87,28 @@ class Display:
         gdi32.DeleteObject(brush)
         user32.ReleaseDC(hwnd, hdc)
 
-    def _draw_macos(self, shape, size):
-        print(f"🍎 [Cocoa] 已接收圆形绘制指令，尺寸: {size}")
-
 class X11:
     def __init__(self):
         self.system = platform.system()
-        print(f"📡 xftool v0.7.2 正在检测系统: {self.system}")
+        print(f"📡 xftool v0.7.3 系统感应: {self.system}")
 
     def display(self, width, height, title="xftool Engine"):
         if self.system == "Linux":
-            return self._init_linux(width, height, title)
-        elif self.system == "Windows":
-            return self._init_windows(width, height, title)
-        elif self.system == "Darwin":
-            return self._init_macos(width, height, title)
-        return None
-
-    def _init_linux(self, width, height, title):
-        lib = util.find_library("X11") or "/usr/lib/libX11.so.6"
-        xlib = ctypes.cdll.LoadLibrary(lib)
-        dpy = xlib.XOpenDisplay(None)
-        win = xlib.XCreateSimpleWindow(dpy, xlib.XRootWindow(dpy, xlib.XDefaultScreen(dpy)), 
+            lib = util.find_library("X11") or "/usr/lib/libX11.so.6"
+            xlib = ctypes.cdll.LoadLibrary(lib)
+            dpy = xlib.XOpenDisplay(None)
+            win = xlib.XCreateSimpleWindow(dpy, xlib.XRootWindow(dpy, xlib.XDefaultScreen(dpy)), 
                                        0, 0, width, height, 1, 0, 0)
-        gc = xlib.XCreateGC(dpy, win, 0, None)
-        xlib.XStoreName(dpy, win, title.encode('utf-8'))
-        xlib.XMapWindow(dpy, win)
-        xlib.XFlush(dpy)
-        return Display("Linux", xlib=xlib, dpy=dpy, win=win, gc=gc, screen=xlib.XDefaultScreen(dpy))
-
-    def _init_windows(self, width, height, title):
-        user32 = ctypes.windll.user32
-        hwnd = user32.CreateWindowExW(0, "Static", title, 0x10CF0000, 100, 100, width, height, 0, 0, 0, 0)
-        user32.ShowWindow(hwnd, 5)
-        return Display("Windows", hwnd=hwnd)
-
-    def _init_macos(self, width, height, title):
-        return Display("Darwin")
+            gc = xlib.XCreateGC(dpy, win, 0, None)
+            xlib.XStoreName(dpy, win, title.encode('utf-8'))
+            xlib.XMapWindow(dpy, win)
+            xlib.XFlush(dpy)
+            return Display("Linux", xlib=xlib, dpy=dpy, win=win, gc=gc, screen=xlib.XDefaultScreen(dpy))
+        
+        elif self.system == "Windows":
+            user32 = ctypes.windll.user32
+            hwnd = user32.CreateWindowExW(0, "Static", title, 0x10CF0000, 100, 100, width, height, 0, 0, 0, 0)
+            user32.ShowWindow(hwnd, 5)
+            return Display("Windows", hwnd=hwnd)
+        
+        return None
