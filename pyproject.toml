@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "xftool"
-version = "0.5"
-description = "专为星际计算设计的高精度数学与 X11 图形工具箱"
+version = "0.6"
+description = "高精度数学与 X11 图形工具箱"
 readme = "README.md"
 authors = [{ name="tinagongtt-lang" }]
 requires-python = ">=3.7"
