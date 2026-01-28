@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "xftool"
-version = "0.7.3"
+version = "0.7.4"
 description = "高精度数学与 X11 图形工具箱"
 readme = "README.md"
 authors = [{ name="tinagongtt-lang" }]
