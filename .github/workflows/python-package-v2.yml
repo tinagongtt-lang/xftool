@@ -3,8 +3,7 @@ name: Python package v0.7.4 CI
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+  
 
 jobs:
   build:
