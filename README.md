@@ -5,7 +5,7 @@ xftool 是一个高性能的 Python 库，旨在为开发者提供高精度的�
 ## 🌌 核心特性
  - 多系统环境感应 (Multi-OS Sensing)：
 
-   -  ** Linux**: 深度集成原生 X11 API。
+   -  **Linux**: 深度集成原生 X11 API。
 
    - **Windows**: 直接驱动 Win32 GDI 渲染引擎。
 
