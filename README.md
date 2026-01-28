@@ -3,15 +3,17 @@
 
 📜 授权 (License)
 本项目采用 MIT License。你可以自由使用、修改和分发，但请保留作者 tinagongtt-lang 的署名。
+## 🛠️ 系统依赖 (System Dependencies)
+由于 `xfX11` 模块直接调用 Linux 底层 API，请在安装前确保系统已安装 X11 开发库：
+
+```bash
+sudo apt update && sudo apt install libx11-dev
+```
 
 🛠️ 安装方法 (Installation)
+先去Releases下载whl包
 ```bash
-# 克隆仓库
-git clone https://github.com/tinagongtt-lang/xftool.git
-cd xftool
-
-# 以开发模式安装 (支持系统包断点)
-pip install -e . --break-system-packages
+pip install xftool-0.4-py3-none-any.whl
 ```
 📖 快速上手 (Quick Usage)
 安装完成后，你可以在任何 Python 环境中直接调用 xmath 模块。
