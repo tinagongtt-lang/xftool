@@ -50,7 +50,8 @@ dis = tool.display(1024, 768, title="xftool Galactic Navigator")
 dis.draw("triangle", 200)      # 绘制三角形
 dis.draw("square", 150)        # 绘制正方形
 dis.draw("rectangle", (300, 50)) # 绘制长方形
-dis.draw("circle", 150)# 绘制圆形
+dis.draw("circle", 150) # 绘制圆形
+done() # 主循环
 ```
 ## 📜 许可证
 本项目基于 MIT 协议开源。
