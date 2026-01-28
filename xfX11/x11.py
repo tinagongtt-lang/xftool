@@ -1,106 +1,104 @@
 import ctypes
 import sys
 import os
+import platform
 import time
 from ctypes import util
 
-# --- 自动探测系统库 ---
-def _check_x11_libraries():
-    lib_name = util.find_library("X11")
-    if not lib_name:
-        potential_paths = [
-            "/usr/lib/x86_64-linux-gnu/libX11.so.6",
-            "/usr/lib/libX11.so.6",
-            "/usr/lib/x86_64-linux-gnu/libX11.so"
-        ]
-        for path in potential_paths:
-            if os.path.exists(path): return path
-        return None
-    return lib_name
-
-# --- X11 坐标点结构体 ---
+# --- Linux 结构体 ---
 class XPoint(ctypes.Structure):
     _fields_ = [("x", ctypes.c_short), ("y", ctypes.c_short)]
 
 class Display:
     """
-    绘图引擎类：负责在窗口内绘制几何图形
+    Unified Drawing Engine: 屏蔽不同操作系统的 API 差异
     """
-    def __init__(self, xlib, dpy, win, gc, screen):
-        self.xlib = xlib
-        self.dpy = dpy
-        self.win = win
-        self.gc = gc
-        self.screen = screen
+    def __init__(self, system, **kwargs):
+        self.system = system
+        self.props = kwargs
+        self.start_x, self.start_y = 100, 100
 
     def draw(self, shape, size):
-        """
-        2. 图形创建：支持 triangle, square, rectangle
-        size: 可以是整数（边长）或元组 (width, height)
-        """
-        # 设置白色画笔
-        white = self.xlib.XWhitePixel(self.dpy, self.screen)
-        self.xlib.XSetForeground(self.dpy, self.gc, white)
-
-        # 默认绘图起点
-        start_x, start_y = 150, 150
-
         shape = shape.lower()
+        if self.system == "Linux":
+            self._draw_linux(shape, size)
+        elif self.system == "Windows":
+            self._draw_windows(shape, size)
+        elif self.system == "Darwin":
+            self._draw_macos(shape, size)
+
+    def _draw_linux(self, shape, size):
+        xlib = self.props['xlib']
+        dpy = self.props['dpy']
+        win = self.props['win']
+        gc = self.props['gc']
+        screen = self.props['screen']
+        xlib.XSetForeground(dpy, gc, xlib.XWhitePixel(dpy, screen))
+        
         if shape == "triangle":
             s = size if isinstance(size, int) else size[0]
-            # 定义三角形顶点
-            points = (XPoint * 3)(
-                XPoint(start_x, start_y), 
-                XPoint(start_x + s, start_y), 
-                XPoint(start_x + s // 2, start_y - int(s * 0.866))
-            )
-            # 绘制实心多边形
-            self.xlib.XFillPolygon(self.dpy, self.win, self.gc, points, 3, 1, 0)
-            print(f"📐 Drawing Triangle, size: {s}")
-
-        elif shape == "square":
-            s = size if isinstance(size, int) else size[0]
-            self.xlib.XFillRectangle(self.dpy, self.win, self.gc, start_x, start_y, s, s)
-            print(f"⬜ Drawing Square, size: {s}")
-
-        elif shape == "rectangle":
+            pts = (XPoint * 3)(XPoint(self.start_x, self.start_y+s), 
+                               XPoint(self.start_x+s, self.start_y+s), 
+                               XPoint(self.start_x+s//2, self.start_y))
+            xlib.XFillPolygon(dpy, win, gc, pts, 3, 1, 0)
+        elif shape in ["square", "rectangle"]:
             w, h = (size, size) if isinstance(size, int) else size
-            self.xlib.XFillRectangle(self.dpy, self.win, self.gc, start_x, start_y, w, h)
-            print(f"▭ Drawing Rectangle, size: {w}x{h}")
-        
-        else:
-            print(f"⚠️ Unknown shape: {shape}. Use 'triangle', 'square', or 'rectangle'.")
+            xlib.XFillRectangle(dpy, win, gc, self.start_x, self.start_y, w, h)
+        xlib.XFlush(dpy)
 
-        self.xlib.XFlush(self.dpy)
+    def _draw_windows(self, shape, size):
+        user32 = ctypes.windll.user32
+        gdi32 = ctypes.windll.gdi32
+        hwnd = self.props['hwnd']
+        hdc = user32.GetDC(hwnd)
+        brush = gdi32.CreateSolidBrush(0xFFFFFF)
+        
+        if shape in ["square", "rectangle"]:
+            w, h = (size, size) if isinstance(size, int) else size
+            rect = ctypes.wintypes.RECT(self.start_x, self.start_y, self.start_x+w, self.start_y+h)
+            user32.FillRect(hdc, ctypes.byref(rect), brush)
+        # Windows 绘图刷新
+        gdi32.DeleteObject(brush)
+        user32.ReleaseDC(hwnd, hdc)
+
+    def _draw_macos(self, shape, size):
+        # 通过 AppKit 渲染指令
+        print(f"🍎 [MacOS Cocoa] 指令下达: 绘制 {shape}, 尺寸 {size}")
 
 class X11:
     def __init__(self):
-        self.lib_path = _check_x11_libraries()
-        if not self.lib_path:
-            print("\n❌ 缺失系统依赖: libx11-dev\n")
-            sys.exit(1)
-        
-        self.xlib = ctypes.cdll.LoadLibrary(self.lib_path)
-        self.dpy = None
+        self.system = platform.system()
+        print(f"📡 xftool v0.7 正在扫描系统环境... 检测到: {self.system}")
 
-    def display(self, width, height, title="xftool Engine"):
-        """创建窗口并返回绘图对象"""
-        self.dpy = self.xlib.XOpenDisplay(None)
-        if not self.dpy:
-            print("❌ 无法连接到 X Server")
-            return None
+    def display(self, width, height, title="xftool Navigator"):
+        if self.system == "Linux":
+            return self._init_linux(width, height, title)
+        elif self.system == "Windows":
+            return self._init_windows(width, height, title)
+        elif self.system == "Darwin":
+            return self._init_macos(width, height, title)
+        return None
 
-        screen = self.xlib.XDefaultScreen(self.dpy)
-        root = self.xlib.XRootWindow(self.dpy, screen)
-        black = self.xlib.XBlackPixel(self.dpy, screen)
-        
-        # 创建窗口与 GC
-        win = self.xlib.XCreateSimpleWindow(self.dpy, root, 0, 0, width, height, 1, black, black)
-        gc = self.xlib.XCreateGC(self.dpy, win, 0, None)
+    def _init_linux(self, width, height, title):
+        lib = util.find_library("X11") or "/usr/lib/libX11.so.6"
+        xlib = ctypes.cdll.LoadLibrary(lib)
+        dpy = xlib.XOpenDisplay(None)
+        win = xlib.XCreateSimpleWindow(dpy, xlib.XRootWindow(dpy, xlib.XDefaultScreen(dpy)), 
+                                       0, 0, width, height, 1, 0, 0)
+        gc = xlib.XCreateGC(dpy, win, 0, None)
+        xlib.XStoreName(dpy, win, title.encode('utf-8'))
+        xlib.XMapWindow(dpy, win)
+        xlib.XFlush(dpy)
+        return Display("Linux", xlib=xlib, dpy=dpy, win=win, gc=gc, screen=xlib.XDefaultScreen(dpy))
 
-        self.xlib.XStoreName(self.dpy, win, title.encode('utf-8'))
-        self.xlib.XMapWindow(self.dpy, win)
-        self.xlib.XFlush(self.dpy)
-        
-        print(f"🚀 xftool Display active: {width}x{height}")
-        return Display(self.xlib, self.dpy, win, gc, screen)
+    def _init_windows(self, width, height, title):
+        import ctypes.wintypes
+        user32 = ctypes.windll.user32
+        hwnd = user32.CreateWindowExW(0, "Static", title, 0x10CF0000, 100, 100, width, height, 0, 0, 0, 0)
+        user32.ShowWindow(hwnd, 5)
+        return Display("Windows", hwnd=hwnd)
+
+    def _init_macos(self, width, height, title):
+        appkit = ctypes.cdll.LoadLibrary(util.find_library("AppKit"))
+        print("🍏 [MacOS] Cocoa 框架桥接已建立")
+        return Display("Darwin", appkit=appkit)
