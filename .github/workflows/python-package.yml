@@ -1,0 +1,44 @@
+name: Python package
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    # 策略：在 Linux, Windows, macOS 三个平台上，针对多个 Python 版本进行交叉测试
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+        
+    - name: Install build tools
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install build setuptools wheel
+        
+    - name: Build package
+      run: python -m build
+      
+    - name: Install the package locally
+      # 验证打包后的安装是否正常
+      run: python -m pip install .
+        
+    - name: Basic Import Test
+      # 核心测试：验证在不同系统和 Python 版本下能否成功导入
+      run: |
+        python -c "import xftool; print('xftool 基础包导入成功！')"
+        python -c "from xftool import xfX11; print('xftool.xfX11 模块导入成功！')"
