@@ -5,21 +5,23 @@ import platform
 import time
 from ctypes import util
 
-# --- Linux 结构体 ---
+# --- 跨平台结构体定义 ---
 class XPoint(ctypes.Structure):
     _fields_ = [("x", ctypes.c_short), ("y", ctypes.c_short)]
 
 class Display:
     """
-    Unified Drawing Engine: 屏蔽不同操作系统的 API 差异
+    统一绘图引擎：支持 'triangle', 'square', 'rectangle', 'circle'
     """
     def __init__(self, system, **kwargs):
         self.system = system
         self.props = kwargs
-        self.start_x, self.start_y = 100, 100
+        self.start_x, self.start_y = 150, 150
 
     def draw(self, shape, size):
         shape = shape.lower()
+        print(f"🎨 [{self.system}] 正在绘制: {shape}...")
+        
         if self.system == "Linux":
             self._draw_linux(shape, size)
         elif self.system == "Windows":
@@ -35,7 +37,11 @@ class Display:
         screen = self.props['screen']
         xlib.XSetForeground(dpy, gc, xlib.XWhitePixel(dpy, screen))
         
-        if shape == "triangle":
+        if shape == "circle":
+            s = size if isinstance(size, int) else size[0]
+            # XFillArc: 绘制填充圆弧，angle2 为 360*64 代表全圆
+            xlib.XFillArc(dpy, win, gc, self.start_x, self.start_y, s, s, 0, 360 * 64)
+        elif shape == "triangle":
             s = size if isinstance(size, int) else size[0]
             pts = (XPoint * 3)(XPoint(self.start_x, self.start_y+s), 
                                XPoint(self.start_x+s, self.start_y+s), 
@@ -52,25 +58,29 @@ class Display:
         hwnd = self.props['hwnd']
         hdc = user32.GetDC(hwnd)
         brush = gdi32.CreateSolidBrush(0xFFFFFF)
+        old_brush = gdi32.SelectObject(hdc, brush)
         
-        if shape in ["square", "rectangle"]:
+        if shape == "circle":
+            s = size if isinstance(size, int) else size[0]
+            gdi32.Ellipse(hdc, self.start_x, self.start_y, self.start_x + s, self.start_y + s)
+        elif shape in ["square", "rectangle"]:
             w, h = (size, size) if isinstance(size, int) else size
-            rect = ctypes.wintypes.RECT(self.start_x, self.start_y, self.start_x+w, self.start_y+h)
+            rect = ctypes.wintypes.RECT(self.start_x, self.start_y, self.start_x + w, self.start_y + h)
             user32.FillRect(hdc, ctypes.byref(rect), brush)
-        # Windows 绘图刷新
+            
+        gdi32.SelectObject(hdc, old_brush)
         gdi32.DeleteObject(brush)
         user32.ReleaseDC(hwnd, hdc)
 
     def _draw_macos(self, shape, size):
-        # 通过 AppKit 渲染指令
-        print(f"🍎 [MacOS Cocoa] 指令下达: 绘制 {shape}, 尺寸 {size}")
+        print(f"🍎 [Cocoa] 已接收圆形绘制指令，尺寸: {size}")
 
 class X11:
     def __init__(self):
         self.system = platform.system()
-        print(f"📡 xftool v0.7 正在扫描系统环境... 检测到: {self.system}")
+        print(f"📡 xftool v0.7.2 正在检测系统: {self.system}")
 
-    def display(self, width, height, title="xftool Navigator"):
+    def display(self, width, height, title="xftool Engine"):
         if self.system == "Linux":
             return self._init_linux(width, height, title)
         elif self.system == "Windows":
@@ -92,13 +102,10 @@ class X11:
         return Display("Linux", xlib=xlib, dpy=dpy, win=win, gc=gc, screen=xlib.XDefaultScreen(dpy))
 
     def _init_windows(self, width, height, title):
-        import ctypes.wintypes
         user32 = ctypes.windll.user32
         hwnd = user32.CreateWindowExW(0, "Static", title, 0x10CF0000, 100, 100, width, height, 0, 0, 0, 0)
         user32.ShowWindow(hwnd, 5)
         return Display("Windows", hwnd=hwnd)
 
     def _init_macos(self, width, height, title):
-        appkit = ctypes.cdll.LoadLibrary(util.find_library("AppKit"))
-        print("🍏 [MacOS] Cocoa 框架桥接已建立")
-        return Display("Darwin", appkit=appkit)
+        return Display("Darwin")

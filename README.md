@@ -1,4 +1,4 @@
-# 🚀 xftool (v0.7)
+# 🚀 xftool (v0.7.2)
 ## 专为多系统原生渲染设计的通用工具箱。
 
 xftool 是一个高性能的 Python 库，旨在为开发者提供高精度的数学计算以及跨平台、零依赖的原生图形渲染能力。无论你是在 Linux、Windows 还是 MacOS，xftool 都能自动感应环境并建立通信。
@@ -17,7 +17,8 @@ xftool 是一个高性能的 Python 库，旨在为开发者提供高精度的�
 
  - `square` (正方形)
 
-  - `rectangle` (长方形)
+ - `rectangle` (长方形)
+ - `circle` （圆形）
 
 - **高精度数学 (xmath)**：利用 gmpy2 提供超越常规精度的计算能力。
 
@@ -49,6 +50,7 @@ dis = tool.display(1024, 768, title="xftool Galactic Navigator")
 dis.draw("triangle", 200)      # 绘制三角形
 dis.draw("square", 150)        # 绘制正方形
 dis.draw("rectangle", (300, 50)) # 绘制长方形
+dis.draw("circle", 150)# 绘制圆形
 ```
 ## 📜 许可证
 本项目基于 MIT 协议开源。
