@@ -1,57 +1,54 @@
-🚀 xftool (v0.4)
-一个专为星际计算设计的高精度数学工具箱。本项目通过 gmpy2 提供了超越标准浮点数（Float64）的数值精度，适用于天文轨道计算、高精度物理模拟等场景。
+# 🚀 xftool (v0.7)
+## 专为多系统原生渲染设计的通用工具箱。
 
-📜 授权 (License)
-本项目采用 MIT License。你可以自由使用、修改和分发，但请保留作者 tinagongtt-lang 的署名。
-## 🛠️ 系统依赖 (System Dependencies)
-由于 `xfX11` 模块直接调用 Linux 底层 API，请在安装前确保系统已安装 X11 开发库：
+xftool 是一个高性能的 Python 库，旨在为开发者提供高精度的数学计算以及跨平台、零依赖的原生图形渲染能力。无论你是在 Linux、Windows 还是 MacOS，xftool 都能自动感应环境并建立通信。
+## 🌌 核心特性
+ - 多系统环境感应 (Multi-OS Sensing)：
 
+   -  ** Linux**: 深度集成原生 X11 API。
+
+   - **Windows**: 直接驱动 Win32 GDI 渲染引擎。
+
+   - **MacOS**: 建立与 Cocoa (AppKit) 框架的底层桥接。
+
+- **零依赖几何引擎 (Zero-Dep Graphics)**：无需安装庞大的 GUI 框架，直接通过 ctypes 调用硬件接口，支持绘制：
+
+ - `triangle` (三角形)
+
+ - `square` (正方形)
+
+  - `rectangle` (长方形)
+
+- **高精度数学 (xmath)**：利用 gmpy2 提供超越常规精度的计算能力。
+
+## 🛠️ 安装指南
+Linux 用户
+在使用图形功能前，请确保安装了 X11 开发库：
 ```bash
 sudo apt update && sudo apt install libx11-dev
 ```
-
-🛠️ 安装方法 (Installation)
-先去Releases下载whl包
+##### 全系统安装
+先去[Releases](https://github.com/tinagongtt-lang/xftool/releases "Releases")下载whl包
 ```bash
 pip install xftool-0.4-py3-none-any.whl
 ```
-📖 快速上手 (Quick Usage)
-安装完成后，你可以在任何 Python 环境中直接调用 xmath 模块。
 
-1. 高精度圆周率与天文常数
-
-```python
-from xmath.functions import pi.Constants
-
-# 计算 100 位精度的 Pi
-print(f"Pi (100 digits): {pi(100)}")
-
-# 获取天文常数 (基于 128 位精度)
-print(f"万有引力常数 G: {Constants.G}")
-print(f"天文单位 AU: {Constants.AU}")
-```
-2. 角度转换与反三角函数
+## 🚀 快速上手
+使用 v0.7 最新的 xfX11 模块，只需几行代码即可创建原生窗口并绘图：
 
 ```python
-from xmath.functions import to_radians, arctan
+import xftool.xfX11 as x11
 
-# 角度转弧度
-rad = to_radians(45.0)
-print(f"45 degrees in radians: {rad}")
+# 1. 初始化引擎（自动感应当前操作系统）
+tool = x11.X11()
 
-# 使用级数展开计算 ArcTan
-print(f"ArcTan(0.5): {arctan(0.5)}")
+# 2. 创建导航窗口 (宽度, 高度, 标题)
+dis = tool.display(1024, 768, title="xftool Galactic Navigator")
+
+# 3. 绘制星际几何图形 (图形名称, 大小)
+dis.draw("triangle", 200)      # 绘制三角形
+dis.draw("square", 150)        # 绘制正方形
+dis.draw("rectangle", (300, 50)) # 绘制长方形
 ```
-3. 数论工具
-
-```python
-from xmath.functions import factor_integer, factorial
-
-# 素因子分解
-print(f"Factor 2026: {factor_integer(2026)}")
-
-# 计算大数阶乘
-print(f"Factorial 100: {factorial(100)}")
-```
-🧠 核心逻辑实现 (Implementation Reference)
-本工具箱的核心算法（如 Chudnovsky 算法、级数展开等）已在源代码中完整实现。详细代码逻辑请参考 xmath/functions.py。
+## 📜 许可证
+本项目基于 MIT 协议开源。
