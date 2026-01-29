@@ -46,7 +46,7 @@ tool = x11.X11()
 # 2. 创建导航窗口 (宽度, 高度, 标题)
 dis = tool.display(1024, 768, title="xftool Galactic Navigator")
 
-# 3. 绘制星际几何图形 (图形名称, 大小)
+# 3. 绘制几何图形 (图形名称, 大小)
 dis.draw("triangle", 200)      # 绘制三角形
 dis.draw("square", 150)        # 绘制正方形
 dis.draw("rectangle", (300, 50)) # 绘制长方形
